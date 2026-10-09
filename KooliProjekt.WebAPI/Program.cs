@@ -1,59 +1,50 @@
-using FluentValidation;
-using KooliProjekt.Application.Behaviors;
+using System;
 using KooliProjekt.Application.Data;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
-namespace KooliProjekt.WebAPI
+var builder = WebApplication.CreateBuilder(args);
+
+// Lisab kontrollerid ja Swaggeri teenused
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Lisab andmebaasi konteksti
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+var app = builder.Build();
+
+// Andmebaasi loomine ja seedimine rakenduse käivitumisel
+using (var scope = app.Services.CreateScope())
 {
-    public class Program
+    var services = scope.ServiceProvider;
+    try
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-            // Add services to the container.
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            {
-                options.UseSqlServer(connectionString);
-            });
-
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-
-            var applicationAssembly = typeof(ErrorHandlingBehavior<,>).Assembly;
-            builder.Services.AddValidatorsFromAssembly(applicationAssembly);
-            builder.Services.AddMediatR(config =>
-            {
-                config.RegisterServicesFromAssembly(applicationAssembly);
-                config.AddOpenBehavior(typeof(ErrorHandlingBehavior<,>));
-                config.AddOpenBehavior(typeof(ValidationBehavior<,>));
-                config.AddOpenBehavior(typeof(TransactionalBehavior<,>));
-            });
-
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseAuthorization();
-
-
-            app.MapControllers();
-
-            app.Run();
-        }
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        context.Database.EnsureCreated();
+        SeedData.Generate(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Andmebaasi seedimisel tekkis viga.");
     }
 }
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
