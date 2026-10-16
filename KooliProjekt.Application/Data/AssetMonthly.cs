@@ -4,7 +4,7 @@ using System.Text;
 
 namespace KooliProjekt.Application.Data
 {
-    internal class AssetMonthly
+    public class AssetMonthly
     {
         public int Id { get; set; }
 

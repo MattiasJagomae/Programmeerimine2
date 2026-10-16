@@ -4,7 +4,7 @@ using System.Text;
 
 namespace KooliProjekt.Application.Data
 {
-    internal class Asset
+    public class Asset
     {
         public int Id { get; set; }
         public string Name { get; set; } = null;

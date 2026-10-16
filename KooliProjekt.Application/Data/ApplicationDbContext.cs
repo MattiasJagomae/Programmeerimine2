@@ -21,7 +21,7 @@ namespace KooliProjekt.Application.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Määra täpsus kõigile decimal tüüpi omadustele
+            
             foreach (var property in modelBuilder.Model.GetEntityTypes()
                 .SelectMany(t => t.GetProperties())
                 .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
